@@ -1,0 +1,48 @@
+﻿# Build
+bin/
+obj/
+Debug/
+Release/
+
+# Visual Studio
+.vs/
+.vs/*
+!.vs/config/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# VS cache / index
+FileContentIndex/
+*.vsidx
+*.dbcache
+*.sqlite
+*.db
+
+# Logs
+*.log
+
+# Debug
+*.pdb
+
+# Output
+*.exe
+*.dll
+
+# NuGet
+*.nupkg
+packages/
+
+# Rider
+.idea/
+
+# OS
+.DS_Store
+
+# App settings (IMPORTANT)
+appsettings.Development.json
+appsettings.Local.json
+
+# Others
+*.cache
