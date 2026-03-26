@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using WareManagement.DTO.RoleDTO;
 using WareManagement.Service.Exceptions;
@@ -25,7 +26,7 @@ namespace WareManagement.Controllers
                 User.FindFirstValue(JwtRegisteredClaimNames.Sub);
 
             if (!int.TryParse(idStr, out var userId))
-                throw new InvalidOperationException("Invalid JWT user id.");
+                throw new InvalidOperationException("Id không hợp lệ");
 
             return userId;
         }
@@ -76,7 +77,7 @@ namespace WareManagement.Controllers
         public async Task<IActionResult> Create([FromBody] CreateRoleRequestDto request)
         {
             if (request is null)
-                return BadRequest(new { message = "Request is required." });
+                return BadRequest(new { message = "Yêu cầu không được để trống" });
 
             try
             {
@@ -106,7 +107,7 @@ namespace WareManagement.Controllers
         public async Task<IActionResult> Update(int id, [FromBody] UpdateRoleRequestDto request)
         {
             if (request is null)
-                return BadRequest(new { message = "Request is required." });
+                return BadRequest(new { message = "Yêu cầu không được để trống" });
 
             try
             {
@@ -143,7 +144,7 @@ namespace WareManagement.Controllers
             {
                 var adminId = GetCurrentUserId();
                 await _roleService.DeleteAsync(adminId, id);
-                return Ok(new { message = "Role deleted." });
+                return Ok(new { message = "Xóa role thành công" });
             }
             catch (ForbiddenException)
             {
@@ -163,7 +164,7 @@ namespace WareManagement.Controllers
         public async Task<IActionResult> AssignRoles(int userId, [FromBody] AddRolesToUserRequestDto request)
         {
             if (request is null)
-                return BadRequest(new { message = "Request is required." });
+                return BadRequest(new { message = "Yêu cầu không được để trống" });
 
             try
             {
