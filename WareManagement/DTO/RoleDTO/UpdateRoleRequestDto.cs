@@ -1,8 +1,7 @@
 namespace WareManagement.DTO.RoleDTO;
 
-public class RoleResponseDto
+public class UpdateRoleRequestDto
 {
-    public int Id { get; set; }
     public string Name { get; set; } = string.Empty;
 }
 
