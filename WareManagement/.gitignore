@@ -1,32 +1,20 @@
-﻿# Build
+﻿# Build Folders
 bin/
 obj/
 Debug/
 Release/
 
-# Visual Studio
+# Visual Studio specific
 .vs/
-.vs/*
-!.vs/config/
 *.user
 *.suo
-*.userosscache
-*.sln.docstates
 
-# VS cache / index
-FileContentIndex/
-*.vsidx
-*.dbcache
-*.sqlite
-*.db
+# Application settings
+appsettings.json
 
-# Logs
-*.log
-
-# Debug
+# Files for debugging
 *.pdb
-
-# Output
+*.log
 *.exe
 *.dll
 
@@ -34,15 +22,8 @@ FileContentIndex/
 *.nupkg
 packages/
 
-# Rider
+# Rider IDE
 .idea/
 
-# OS
+# Mac/OS
 .DS_Store
-
-# App settings (IMPORTANT)
-appsettings.Development.json
-appsettings.Local.json
-
-# Others
-*.cache
