@@ -1,0 +1,29 @@
+# Build Folders
+bin/
+obj/
+Debug/
+Release/
+
+# Visual Studio specific
+.vs/
+*.user
+*.suo
+
+# Application settings
+appsettings.json
+
+# Files for debugging
+*.pdb
+*.log
+*.exe
+*.dll
+
+# NuGet
+*.nupkg
+packages/
+
+# Rider IDE
+.idea/
+
+# Mac/OS
+.DS_Store
