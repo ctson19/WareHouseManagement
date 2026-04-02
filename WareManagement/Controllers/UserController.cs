@@ -10,7 +10,7 @@ namespace WareManagement.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    //[Authorize]
+    [Authorize]
     public class UserController : ControllerBase
     {
         private readonly IUserService _userService;
@@ -27,7 +27,7 @@ namespace WareManagement.Controllers
                 User.FindFirstValue(JwtRegisteredClaimNames.Sub);
 
             if (!int.TryParse(idStr, out var userId))
-                throw new InvalidOperationException("ID ng??i d˘ng trong JWT khÙng h?p l?.");
+                throw new InvalidOperationException("ID ng??i dùng trong JWT khùng h?p l?.");
 
             return userId;
         }
@@ -36,7 +36,7 @@ namespace WareManagement.Controllers
         public async Task<IActionResult> CreateUser([FromBody] CreateUserRequestDto request)
         {
             if (request is null)
-                return BadRequest(new { message = "YÍu c?u khÙng ???c ?? tr?ng." });
+                return BadRequest(new { message = "Yùu c?u khùng ???c ?? tr?ng." });
 
             try
             {
@@ -62,13 +62,13 @@ namespace WareManagement.Controllers
         public async Task<IActionResult> ChangePasswordForMe([FromBody] ChangePasswordRequestDto request)
         {
             if (request is null)
-                return BadRequest(new { message = "YÍu c?u khÙng ???c ?? tr?ng" });
+                return BadRequest(new { message = "Yùu c?u khùng ???c ?? tr?ng" });
 
             try
             {
                 var userId = GetCurrentUserId();
                 await _userService.ChangePasswordForMeAsync(userId, request);
-                return Ok(new { message = "c?p nh?t m?t kh?u th‡nh cÙng" });
+                return Ok(new { message = "c?p nh?t m?t kh?u thùnh cùng" });
             }
             catch (NotFoundException ex)
             {
@@ -91,7 +91,7 @@ namespace WareManagement.Controllers
             {
                 var adminId = GetCurrentUserId();
                 await _userService.SoftDeleteAsync(adminId, id);
-                return Ok(new { message = "XÛa user th‡nh cÙng" });
+                return Ok(new { message = "Xùa user thùnh cùng" });
             }
             catch (ForbiddenException)
             {
@@ -111,7 +111,7 @@ namespace WareManagement.Controllers
         public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateUserStatusRequestDto request)
         {
             if (request is null)
-                return BadRequest(new { message = "YÍu c?u khÙng ???c ?? tr?ng" });
+                return BadRequest(new { message = "Yùu c?u khùng ???c ?? tr?ng" });
 
             try
             {
@@ -137,13 +137,13 @@ namespace WareManagement.Controllers
         public async Task<IActionResult> ResetPasswordForUser(int id, [FromBody] ResetPasswordRequestDto request)
         {
             if (request is null)
-                return BadRequest(new { message = "YÍu c?u khÙng ???c ?? tr?ng" });
+                return BadRequest(new { message = "Yùu c?u khùng ???c ?? tr?ng" });
 
             try
             {
                 var adminId = GetCurrentUserId();
                 await _userService.ResetPasswordForUserAsync(adminId, id, request);
-                return Ok(new { message = "M?t kh?u ???c ??t l?i th‡nh cÙng" });
+                return Ok(new { message = "M?t kh?u ???c t?o l?i thùnh cùng" });
             }
             catch (ForbiddenException)
             {
@@ -159,4 +159,4 @@ namespace WareManagement.Controllers
             }
         }
     }
-    }
+}

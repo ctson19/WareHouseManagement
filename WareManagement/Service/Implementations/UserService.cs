@@ -1,4 +1,3 @@
-using BCrypt.Net;
 using WareManagement.DTO.UserDTO;
 using WareManagement.Repository.Interfaces;
 using WareManagement.Service.Exceptions;
@@ -15,125 +14,101 @@ public class UserService : IUserService
         _userRepository = userRepository;
     }
 
-    public async Task<UserResponseDto> CreateUserAsync(int adminId, CreateUserRequestDto request)
+    private async Task EnsureAdminAsync(int adminId)
     {
         if (!await _userRepository.IsAdminAsync(adminId))
-            throw new ForbiddenException("B?n khÙng cÛ quy?n th?c hi?n h‡nh ??ng n‡y");
+            throw new ForbiddenException("B?n khùng cù quy?n th?c hi?n thao tùc nùy.");
+    }
 
-        if (request is null)
-            throw new ValidationException("YÍu c?u khÙng ???c ?? tr?ng");
+    public async Task<UserResponseDto> CreateUserAsync(int adminId, CreateUserRequestDto request)
+    {
+        await EnsureAdminAsync(adminId);
 
-        if (string.IsNullOrWhiteSpace(request.UserName) || string.IsNullOrWhiteSpace(request.Password))
-            throw new ValidationException("TÍn ??ng nh?p v‡ m?t kh?u l‡ b?t bu?c.");
+        if (request is null) throw new ValidationException("Yùu c?u khùng h?p l?.");
+        if (string.IsNullOrWhiteSpace(request.UserName)) throw new ValidationException("Tùn ??ng nh?p lù b?t bu?c.");
+        if (string.IsNullOrWhiteSpace(request.Password)) throw new ValidationException("M?t kh?u lù b?t bu?c.");
+        if (request.UserName.Length > 100) throw new ValidationException("Tùn ??ng nh?p quù dùi.");
 
-        var exists = await _userRepository.UsernameExistsAsync(request.UserName);
-        if (exists)
-            throw new ConflictException("TÍn ??ng nh?p ?„ t?n t?i.");
+        var username = request.UserName.Trim();
+        if (await _userRepository.UsernameExistsAsync(username))
+            throw new ConflictException("Tùn ??ng nh?p ?ù t?n t?i.");
 
-        var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
-        var now = DateTime.UtcNow;
-
-        var user = await _userRepository.CreateUserAsync(
-            username: request.UserName,
-            passwordHash: passwordHash,
-            isActive: request.IsActive,
-            utcNow: now);
+        var utcNow = DateTime.UtcNow;
+        var hash = BCrypt.Net.BCrypt.HashPassword(request.Password);
+        var user = await _userRepository.CreateUserAsync(username, hash, request.IsActive, utcNow);
 
         return new UserResponseDto
         {
             Id = user.Id,
             UserName = user.Username,
-            IsActive = user.IsActive ?? false
+            IsActive = user.IsActive == true
         };
     }
 
     public async Task ChangePasswordForMeAsync(int userId, ChangePasswordRequestDto request)
     {
-        if (request is null)
-            throw new ValidationException("YÍu c?u khÙng ???c ?? tr?ng.");
-
-        if (string.IsNullOrWhiteSpace(request.OldPassword) || string.IsNullOrWhiteSpace(request.RenewPassword) || string.IsNullOrWhiteSpace(request.ConfirmPassword))
-            throw new ValidationException("M?t kh?u c? v‡ m?t kh?u m?i l‡ b?t bu?c.");
-
-        if (!string.Equals(request.RenewPassword, request.ConfirmPassword, StringComparison.Ordinal))
-            throw new ValidationException("X·c nh?n m?t kh?u khÙng kh?p v?i m?t kh?u m?i.");
-
-        if (request.RenewPassword.Length < 6)
-            throw new ValidationException("M?t kh?u m?i ph?i cÛ Ìt nh?t 6 k˝ t?.");
+        if (request is null) throw new ValidationException("Yùu c?u khùng h?p l?.");
+        if (string.IsNullOrWhiteSpace(request.OldPassword)) throw new ValidationException("M?t kh?u c? lù b?t bu?c.");
+        if (string.IsNullOrWhiteSpace(request.RenewPassword)) throw new ValidationException("M?t kh?u m?i lù b?t bu?c.");
+        if (request.RenewPassword != request.ConfirmPassword)
+            throw new ValidationException("M?t kh?u xùc nh?n khùng kh?p.");
 
         var user = await _userRepository.GetByIdAsync(userId);
-        if (user is null)
-            throw new NotFoundException("KhÙng tÏm th?y ng??i d˘ng.");
+        if (user is null) throw new NotFoundException("Khùng tùm th?y ng??i dùng.");
+        if (user.IsActive != true) throw new ValidationException("Tùi kho?n ?ù b? khùa.");
 
-        if (user.IsActive != true)
-            throw new ValidationException("Ng??i d˘ng ?ang b? vÙ hi?u hÛa.");
+        if (!BCrypt.Net.BCrypt.Verify(request.OldPassword, user.PasswordHash))
+            throw new UnauthorizedException("M?t kh?u c? khùng ?ùng.");
 
-        var ok = BCrypt.Net.BCrypt.Verify(request.OldPassword, user.PasswordHash);
-        if (!ok)
-            throw new UnauthorizedException("M?t kh?u c? khÙng ?˙ng.");
-
-        var newHash = BCrypt.Net.BCrypt.HashPassword(request.RenewPassword);
-        await _userRepository.UpdatePasswordHashAsync(userId, newHash, DateTime.UtcNow);
+        var utcNow = DateTime.UtcNow;
+        var hash = BCrypt.Net.BCrypt.HashPassword(request.RenewPassword);
+        await _userRepository.UpdatePasswordHashAsync(userId, hash, utcNow);
     }
 
     public async Task ResetPasswordForUserAsync(int adminId, int userId, ResetPasswordRequestDto request)
     {
-        if (!await _userRepository.IsAdminAsync(adminId))
-            throw new ForbiddenException("B?n khÙng cÛ quy?n th?c hi?n h‡nh ??ng n‡y.");
+        await EnsureAdminAsync(adminId);
 
-        if (request is null)
-            throw new ValidationException("YÍu c?u khÙng ???c ?? tr?ng.");
-
-        if (string.IsNullOrWhiteSpace(request.RenewPassword) || string.IsNullOrWhiteSpace(request.ConfirmPassword))
-            throw new ValidationException("M?t kh?u m?i v‡ x·c nh?n m?t kh?u l‡ b?t bu?c.");
-
-        if (!string.Equals(request.RenewPassword, request.ConfirmPassword, StringComparison.Ordinal))
-            throw new ValidationException("X·c nh?n m?t kh?u khÙng kh?p v?i m?t kh?u m?i.");
-
-        if (request.RenewPassword.Length < 6)
-            throw new ValidationException("M?t kh?u m?i ph?i cÛ Ìt nh?t 6 k˝ t?.");
+        if (request is null) throw new ValidationException("Yùu c?u khùng h?p l?.");
+        if (string.IsNullOrWhiteSpace(request.RenewPassword)) throw new ValidationException("M?t kh?u m?i lù b?t bu?c.");
+        if (request.RenewPassword != request.ConfirmPassword)
+            throw new ValidationException("M?t kh?u x·c nh?n khÙng kh?p.");
 
         var user = await _userRepository.GetByIdAsync(userId);
-        if (user is null)
-            throw new NotFoundException("KhÙng tÏm th?y ng??i d˘ng.");
+        if (user is null) throw new NotFoundException("Khùng tùm th?y ng??i dùng.");
 
-        if (user.IsActive != true)
-            throw new ValidationException("Ng??i d˘ng ?ang b? vÙ hi?u hÛa.");
-
-        var newHash = BCrypt.Net.BCrypt.HashPassword(request.RenewPassword);
-        await _userRepository.UpdatePasswordHashAsync(userId, newHash, DateTime.UtcNow);
+        var utcNow = DateTime.UtcNow;
+        var hash = BCrypt.Net.BCrypt.HashPassword(request.RenewPassword);
+        await _userRepository.UpdatePasswordHashAsync(userId, hash, utcNow);
     }
 
     public async Task SoftDeleteAsync(int adminId, int userId)
     {
-        if (!await _userRepository.IsAdminAsync(adminId))
-            throw new ForbiddenException("B?n khÙng cÛ quy?n th?c hi?n h‡nh ??ng n‡y.");
+        await EnsureAdminAsync(adminId);
+
+        if (adminId == userId)
+            throw new ValidationException("Khùng th? t? xùa tùi kho?n c?a chùnh mùnh.");
 
         var user = await _userRepository.GetByIdAsync(userId);
-        if (user is null)
-            throw new NotFoundException("KhÙng tÏm th?y ng??i d˘ng.");
+        if (user is null) throw new NotFoundException("Khùng tùm th?y ng??i dùng.");
 
-        if (user.IsActive == false)
-            throw new ValidationException("Ng??i d˘ng ?„ b? vÙ hi?u hÛa tr??c ?Û.");
-
-        await _userRepository.SoftDeleteAsync(userId, DateTime.UtcNow);
+        var utcNow = DateTime.UtcNow;
+        await _userRepository.SoftDeleteAsync(userId, utcNow);
     }
 
     public async Task<UserResponseDto> UpdateUserStatusAsync(int adminId, int userId, bool isActive)
     {
-        if (!await _userRepository.IsAdminAsync(adminId))
-            throw new ForbiddenException("B?n khÙng cÛ quy?n th?c hi?n h‡nh ??ng n‡y.");
+        await EnsureAdminAsync(adminId);
 
-        var user = await _userRepository.GetByIdAsync(userId);
-        if (user is null)
-            throw new NotFoundException("KhÙng tÏm th?y ng??i d˘ng.");
+        if (adminId == userId && !isActive)
+            throw new ValidationException("Khùng th? t? khùa tùi kho?n c?a chùnh mùnh.");
 
-        var updatedUser = await _userRepository.UpdateIsActiveAsync(userId, isActive, DateTime.UtcNow);
+        var user = await _userRepository.UpdateIsActiveAsync(userId, isActive, DateTime.UtcNow);
         return new UserResponseDto
         {
-            Id = updatedUser.Id,
-            UserName = updatedUser.Username,
-            IsActive = updatedUser.IsActive ?? false
+            Id = user.Id,
+            UserName = user.Username,
+            IsActive = user.IsActive == true
         };
     }
 }
